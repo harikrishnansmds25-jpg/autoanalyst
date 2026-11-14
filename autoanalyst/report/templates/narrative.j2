@@ -1,0 +1,31 @@
+{#- Context: facts, d (dataset), m (model), s (summary), primary and comp (metric keys). -#}
+{%- block overview -%}
+The file {{ d.file_name }} has {{ d.n_rows | num }} rows and {{ d.n_cols }} columns. The target is '{{ d.target }}' and the task is {{ d.task }}. After cleaning, {{ d.n_rows_clean | num }} rows and {{ d.n_features_clean }} feature columns were used for modelling.
+{%- endblock -%}
+
+{%- block data_quality -%}
+{%- set missing = facts.column_issues | selectattr("n_missing") | sort(attribute="missing_frac", reverse=True) | list -%}
+{% if missing %}Missing values occur in {{ s.n_columns_with_missing | plural("column") }}; the highest share is {{ missing[0].missing_frac | pct }} in '{{ missing[0].column }}'.{% else %}No column has missing values.{% endif %}
+{%- if d.n_duplicates %} The file contains {{ d.n_duplicates | plural("exact duplicate row") }}.{% endif %} The cleaning plan has {{ s.n_plan_steps | plural("step") }} and drops {{ s.n_dropped_columns | plural("column") }}. Of {{ s.n_checks }} validation checks, {{ s.n_checks_passed }} passed.
+{%- endblock -%}
+
+{%- block eda -%}
+{%- set top = facts.eda.associations[0] if facts.eda.associations else None -%}
+{% if top %}The feature most associated with the target is '{{ top.feature }}' ({{ top.measure | measure }} {{ "%.2f" | format(top.value) }}).{% endif %}
+{%- if d.task == "classification" and facts.eda.target.minority_share is not none %} The smallest class makes up {{ facts.eda.target.minority_share | pct }} of rows.
+{%- elif facts.eda.target.stats %} The target has a mean of {{ "%.2f" | format(facts.eda.target.stats.mean) }} and a median of {{ "%.2f" | format(facts.eda.target.stats.median) }}.{% endif %}
+{%- if facts.eda.strong_pairs %} The data has {{ facts.eda.strong_pairs | length | plural("highly correlated pair") }} of numeric features, which makes individual importances harder to interpret.{% endif %}
+{%- endblock -%}
+
+{%- block model -%}
+{{ m.model_label }} was tuned with {{ m.cv_folds }}-fold cross-validation on {{ m.n_train | num }} training rows and tested on {{ m.n_test | num }} held-out rows. Cross-validated {{ primary | metric }} was {{ "%.3f" | format(m.cv[primary].mean) }} (standard deviation {{ "%.3f" | format(m.cv[primary].std) }}), and {{ "%.3f" | format(m.test[primary]) }} on the test set.
+{%- if comp != primary %} On {{ comp | metric }}, the model scored {{ "%.3f" | format(m.test[comp]) }} on the test set against {{ "%.3f" | format(m.test_baseline[comp]) }} for the dummy baseline.
+{%- else %} The dummy baseline scored {{ "%.3f" | format(m.test_baseline[comp]) }}.{% endif %}
+{%- if m.beats_baseline %} The model clearly beats the baseline.{% else %} The model does not clearly beat the baseline, so its predictions should not be relied on.{% endif %}
+{%- if m.feature_importance %} The most important feature was '{{ m.feature_importance[0].feature }}'.{% endif %}
+{%- endblock -%}
+
+{%- block conclusion -%}
+{% if m.beats_baseline %}{{ m.model_label }} predicts '{{ d.target }}' better than a baseline that ignores the features, with a test {{ primary | metric }} of {{ "%.3f" | format(m.test[primary]) }}.{% else %}No reliable relationship between the features and '{{ d.target }}' was found with {{ m.model_label }}.{% endif %}
+{%- if s.n_warnings %} Review the {{ s.n_warnings | plural("warning") }} in section 6 before acting on these results.{% endif %}
+{%- endblock -%}

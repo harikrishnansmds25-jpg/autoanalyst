@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autoanalyst"
+version = "0.1.0"
+description = "Multi-agent system for automated tabular data analysis and reporting"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "pydantic>=2",
+    "pydantic-settings>=2",
+    "matplotlib",
+    "python-docx",
+    "jinja2",
+    "google-genai",
+    "httpx",
+    "joblib",
+    "streamlit[pdf]",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pypdf", "pyflakes"]
+
+[tool.setuptools.packages.find]
+include = ["autoanalyst*"]
+
+[tool.setuptools.package-data]
+"autoanalyst.report" = ["templates/*.j2"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
