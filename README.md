@@ -78,8 +78,12 @@ the template narrative, and says so in the decision log.
 ## Use
 
 ```
-.venv\Scripts\streamlit run autoanalyst/ui/app.py
+.venv\Scripts\streamlit run streamlit_app.py
 ```
+
+Deployment on Streamlit Community Cloud: main file `streamlit_app.py`, Python 3.13. `packages.txt` installs
+LibreOffice for the PDF. There is no GPU or Ollama there, so the agents use the rule-based fallbacks unless
+`GEMINI_API_KEY` is added under the app's Secrets.
 
 Each job writes to `runs/<job_id>/`: the upload, `state.json`, profile, proposed and approved plan,
 debate and fix rounds, validation, EDA, `train_result.json`, `model.joblib`, charts, `facts.json`,
@@ -112,6 +116,17 @@ column and a target leak) are planned by three variants: rule-based, A (Planner 
 B (Planner + Critic + validators). Plans are scored against hand-written known-good plans
 (`evaluation/gold.py`). Results are in `evaluation/results/results.md`; failure cases found during
 development and evaluation are in `docs/failure_cases.md`.
+
+Results with the local qwen2.5:7b (hosted model not run):
+
+| Variant | Plan accuracy | Recovered from a failing first plan | Runs with silent mistakes | LLM calls / run | Time / run |
+|---|---|---|---|---|---|
+| Rule-based | 0.95 | 0/1 | 2/5 | 0 | 0.1 s |
+| A: Planner + validators | 0.90 | 5/6 | 1/5 | 4.3 | 178 s |
+| B: Planner + Critic + validators | 0.87 | 5/6 | 2/5 | 9.2 | 237 s |
+
+The writer invented no numbers in any of the 6 reports. With this local model the Critic did not
+improve plans; the deterministic validators and the bounded repair loops did the useful work.
 
 ## Configuration
 
